@@ -9,23 +9,43 @@ import java.util.Arrays;
 
 public class MainClient {
 	public static Socket socket;
-	public static String remoteHost = "10.2.22.134";
-	public static int port = 42021;
-	public static void main(String[] args) throws UnknownHostException, IOException, ClassNotFoundException {
+	public static String remoteHost = "10.2.22.159";
+	public static int port = 42022;
+	public static boolean connectionAlive;
+	public static void main(String[] args) throws UnknownHostException, IOException, ClassNotFoundException, InterruptedException {
 		System.out.println("Starting...");
-		socket = new Socket(remoteHost, port);
-		socket.setKeepAlive(true);
-		World world;
-		double[][] points;
-		ObjectInputStream objIn = new ObjectInputStream(socket.getInputStream());
-		ObjectOutputStream objOut = new ObjectOutputStream(socket.getOutputStream());
-		points = (double[][]) objIn.readObject();
-		world  = (World) objIn.readObject();
-		objOut.writeObject(runSim(world, points));
-		socket.close();
+		connectionAlive = false;
+		ConnectionChecker checker = new ConnectionChecker();
+		checker.start();
+		while(true) {
+			if(connectionAlive) {
+					World world;
+					double[][] points;
+					ObjectInputStream objIn = new ObjectInputStream(socket.getInputStream());
+					ObjectOutputStream objOut = new ObjectOutputStream(socket.getOutputStream());
+					points = (double[][]) objIn.readObject();
+					world  = (World) objIn.readObject();
+					objOut.writeObject(runSim(world, points));
+			}
+			else {
+				connectionAlive = establishConnection();
+			}
+		}
 		
 		
 		
+	}
+	public static boolean establishConnection() {
+		try {
+			socket = new Socket(remoteHost, port);
+		} catch (UnknownHostException e) {
+			return false;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+		return true;
 	}
 	
 	public static double[][] runSim(World world, double[][] points) {
@@ -105,5 +125,13 @@ public class MainClient {
 			
 		}
 		return output;
+	}
+	
+	public static void setConnectionAlive(boolean val) {
+		connectionAlive = val;
+	}
+	
+	public static Socket getConnection() {
+		return socket;
 	}
 }
